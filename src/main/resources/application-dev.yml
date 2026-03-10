@@ -1,0 +1,28 @@
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/flowify
+
+app:
+  jwt:
+    secret: dev-jwt-secret-key-for-local-development-only-32chars!!
+    access-expiration-ms: 1800000
+    refresh-expiration-ms: 604800000
+
+  encryption:
+    secret-key: ZGV2LWVuY3J5cHRpb24tc2VjcmV0LWtleS0zMmNoYXJz
+
+  fastapi:
+    base-url: http://localhost:8000
+    internal-token: dev-internal-api-secret
+
+  cors:
+    allowed-origins: http://localhost:3000
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org.github.flowify: DEBUG
+    org.springframework.security: DEBUG

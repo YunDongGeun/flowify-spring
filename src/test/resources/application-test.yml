@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: Flowify-Test
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/flowify-test
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-client-id
+            client-secret: test-client-secret
+            scope: openid, email, profile
+            redirect-uri: "{baseUrl}/api/auth/google/callback"
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
+            jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration
+
+app:
+  jwt:
+    secret: test-jwt-secret-key-for-unit-testing-only-32chars!!
+    access-expiration-ms: 1800000
+    refresh-expiration-ms: 604800000
+  encryption:
+    secret-key: dGVzdC1lbmNyeXB0aW9uLXNlY3JldC1rZXktMzJjaGFycw==
+  fastapi:
+    base-url: http://localhost:8000
+    internal-token: test-internal-api-secret
+  cors:
+    allowed-origins: http://localhost:3000
+
+server:
+  port: 0

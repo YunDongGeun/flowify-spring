@@ -59,7 +59,7 @@ implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
 runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
 runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 
-// API 문서화
+// API 문서화 (Swagger)
 implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 
 // 테스트
@@ -77,7 +77,7 @@ spring:
     name: Flowify
   data:
     mongodb:
-      uri: ${MONGODB_URL:mongodb://localhost:27017/flowify}
+      uri: ${MONGODB_URL:mongodb://localhost:27017/flowify}  # 배포 시 실제 호스트로 변경
   security:
     oauth2:
       client:
@@ -96,11 +96,11 @@ app:
   encryption:
     secret-key: ${ENCRYPTION_SECRET_KEY}
   fastapi:
-    base-url: ${FASTAPI_URL:http://localhost:8000}
+    base-url: ${FASTAPI_URL:http://localhost:8000}  # 배포 시 실제 호스트로 변경
     internal-token: ${INTERNAL_API_SECRET}
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 ```
 
 **기타:**
@@ -220,7 +220,8 @@ volumes:
 
 **CorsConfig 허용 규칙:**
 - 개발 환경: `http://localhost:3000` (React 개발 서버)
-- 운영 환경: 환경변수로 관리
+- 운영 환경: 환경변수로 관리 (배포 시 실제 도메인으로 변경)
+- **주의**: localhost는 배포 환경에 따라 변경 가능
 
 **WebClient 설정:**
 - base-url: `${FASTAPI_URL}`
@@ -859,15 +860,15 @@ Body:
 
 > 목표: API 문서화, 시드 데이터, 통합 테스트, Docker 최적화, 보안 검수
 
-### Step 5-1. API 문서화
+### Step 5-1. Swagger API 문서화
 
 **작업 내용:**
-- SpringDoc OpenAPI(Swagger UI) 설정 완성
+- SpringDoc 기반 Swagger UI 설정 완성
 - 각 Controller에 `@Operation`, `@ApiResponse`, `@Tag` 어노테이션 추가
 - DTO에 `@Schema` 어노테이션 추가
 - Swagger UI 접근 경로: `/swagger-ui.html`
 
-**커밋:** `docs: add OpenAPI documentation`
+**커밋:** `docs: add Swagger API documentation`
 
 ---
 
@@ -1101,7 +1102,7 @@ docker-compose.yml              (신규)
 | 18 | 4 | `feat: add OAuth token management` |
 | 19 | 4 | `feat: add FastAPI internal communication client` |
 | 20 | 4 | `test: add template and OAuth module tests` |
-| 21 | 5 | `docs: add OpenAPI documentation` |
+| 21 | 5 | `docs: add Swagger API documentation` |
 | 22 | 5 | `feat: add system template seed data` |
 | 23 | 5 | `test: add integration tests` |
 | 24 | 5 | `infra: optimize Docker deployment configuration` |

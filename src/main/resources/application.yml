@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: Flowify
+
+  data:
+    mongodb:
+      uri: ${MONGODB_URL:mongodb://localhost:27017/flowify}
+
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: openid, email, profile
+            redirect-uri: "{baseUrl}/api/auth/google/callback"
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    access-expiration-ms: 1800000
+    refresh-expiration-ms: 604800000
+
+  encryption:
+    secret-key: ${ENCRYPTION_SECRET_KEY}
+
+  fastapi:
+    base-url: ${FASTAPI_URL:http://localhost:8000}
+    internal-token: ${INTERNAL_API_SECRET}
+
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+server:
+  port: ${SERVER_PORT:8080}

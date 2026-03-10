@@ -1,7 +1,6 @@
 HELP.md
 .gradle
 build/
-!gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
 
@@ -37,19 +36,12 @@ out/
 .vscode/
 
 ### Java ###
-# Compiled class file
 *.class
-
-# Log file
 *.log
-
-# BlueJ files
 *.ctxt
-
-# Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
-# Package Files #
+# Package Files
 *.jar
 *.war
 *.nar
@@ -57,6 +49,9 @@ out/
 *.zip
 *.tar.gz
 *.rar
+
+# Gradle wrapper jar (must come after *.jar)
+!gradle/wrapper/gradle-wrapper.jar
 
 # virtual machine crash logs
 hs_err_pid*
