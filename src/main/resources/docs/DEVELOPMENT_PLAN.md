@@ -188,20 +188,26 @@ volumes:
 ```
 
 **ErrorCode enum 항목:**
-| 코드 | HTTP Status | 설명 |
-|------|-------------|------|
-| `AUTH_INVALID_TOKEN` | 401 | JWT 유효하지 않음 |
-| `AUTH_EXPIRED_TOKEN` | 401 | JWT 만료 |
-| `AUTH_FORBIDDEN` | 403 | 권한 없음 |
-| `WORKFLOW_NOT_FOUND` | 404 | 워크플로우 없음 |
-| `WORKFLOW_ACCESS_DENIED` | 403 | 워크플로우 접근 권한 없음 |
-| `OAUTH_NOT_CONNECTED` | 400 | 필요한 서비스 미연결 |
-| `OAUTH_TOKEN_EXPIRED` | 400 | 외부 토큰 갱신 실패 |
-| `EXECUTION_FAILED` | 500 | 실행 실패 |
-| `FASTAPI_UNAVAILABLE` | 503 | FastAPI 서비스 접근 불가 |
-| `USER_NOT_FOUND` | 404 | 사용자 없음 |
-| `TEMPLATE_NOT_FOUND` | 404 | 템플릿 없음 |
-| `INVALID_REQUEST` | 400 | 잘못된 요청 |
+| 코드 | HTTP Status | 설명 | 관련 예외 요구사항 |
+|------|-------------|------|----------------|
+| `AUTH_INVALID_TOKEN` | 401 | JWT 유효하지 않음 | - |
+| `AUTH_EXPIRED_TOKEN` | 401 | JWT 만료 | - |
+| `AUTH_FORBIDDEN` | 403 | 권한 없음 | - |
+| `WORKFLOW_NOT_FOUND` | 404 | 워크플로우 없음 | - |
+| `WORKFLOW_ACCESS_DENIED` | 403 | 워크플로우 접근 권한 없음 | - |
+| `WORKFLOW_VALIDATION_FAILED` | 400 | 워크플로우 구조 유효성 오류 | EXR-05 |
+| `OAUTH_NOT_CONNECTED` | 400 | 필요한 서비스 미연결 | - |
+| `OAUTH_TOKEN_EXPIRED` | 400 | 외부 토큰 갱신 실패 | EXR-02 |
+| `EXTERNAL_API_ERROR` | 502 | 외부 서비스 API 연결 오류 | EXR-01 |
+| `LLM_API_ERROR` | 502 | LLM API 호출 오류 | EXR-03 |
+| `LLM_GENERATION_FAILED` | 422 | LLM 워크플로우 자동 생성 실패 | EXR-04 |
+| `EXECUTION_FAILED` | 500 | 워크플로우 실행 중 노드 오류 | EXR-06 |
+| `CRAWL_FAILED` | 502 | 웹 수집 오류 | EXR-07 |
+| `DATA_CONVERSION_FAILED` | 422 | 이기종 데이터 규격 변환 오류 | EXR-08 |
+| `FASTAPI_UNAVAILABLE` | 503 | FastAPI 서비스 접근 불가 | - |
+| `USER_NOT_FOUND` | 404 | 사용자 없음 | - |
+| `TEMPLATE_NOT_FOUND` | 404 | 템플릿 없음 | - |
+| `INVALID_REQUEST` | 400 | 잘못된 요청 | - |
 
 **커밋:** `feat: add common response format and exception handling`
 
@@ -512,7 +518,7 @@ public class Workflow {
     private List<String> sharedWith;        // 공유된 사용자 ID 목록
     private boolean isTemplate;             // 템플릿 여부
     private String templateId;              // 원본 템플릿 ID
-    private List<NodeDefinition> nodes;     // 노드 목록
+    private List<NodeDefinition> nodes;     // 노드 목록 (category + type 구조)
     private List<EdgeDefinition> edges;     // 엣지 목록
     private TriggerConfig trigger;          // 트리거 설정 (null이면 수동)
     private boolean isActive;               // 트리거 활성화 여부
@@ -526,10 +532,11 @@ public class Workflow {
 **NodeDefinition:**
 ```java
 public class NodeDefinition {
-    private String id;          // "node_1"
-    private String type;        // input | llm | if_else | loop | output
+    private String id;            // "node_1"
+    private String category;      // service | processing | ai
+    private String type;          // 카테고리별 하위 타입 (SPRING_BOOT_DESIGN.md 4.2 참조)
     private Map<String, Object> config;    // 노드별 설정
-    private Position position;  // { x, y } 캔버스 좌표
+    private Position position;    // { x, y } 캔버스 좌표
 }
 ```
 
@@ -604,8 +611,8 @@ public class WorkflowExecution {
     private String id;
     private String workflowId;
     private String userId;
-    private String state;           // pending | running | success | failed
-    private List<NodeLog> nodeLogs; // 노드별 실행 로그
+    private String state;           // pending | running | success | failed | rollback_available
+    private List<NodeLog> nodeLogs; // 노드별 실행 로그 (스냅샷 포함, SPRING_BOOT_DESIGN.md 6.3 참조)
     private Instant startedAt;
     private Instant finishedAt;
 }
@@ -683,7 +690,7 @@ public class Template {
     private String id;
     private String name;                        // 템플릿 이름
     private String description;                 // 설명
-    private String category;                    // education | productivity | development
+    private String category;                    // communication | storage | spreadsheet | web_crawl | calendar
     private String icon;                        // 아이콘 식별자
     private List<NodeDefinition> nodes;         // 사전 정의된 노드 구성
     private List<EdgeDefinition> edges;         // 엣지 구성
@@ -705,14 +712,14 @@ public class Template {
 | POST | `/api/templates/{id}/instantiate` | 템플릿으로 워크플로우 생성 |
 | POST | `/api/templates` | 사용자 템플릿 생성 (내 워크플로우를 템플릿으로) |
 
-**기본 제공 템플릿 (시드 데이터):**
+**기본 제공 템플릿 (시드 데이터, 요구사항 기준):**
 
 | 이름 | 카테고리 | 구성 |
 |------|---------|------|
-| 학습 노트 자동 생성 | education | 강의 자료 입력 → AI 요약 → Notion 저장 |
-| 회의록 요약 및 공유 | productivity | 회의 녹취 → AI 정리 → Slack 전송 |
-| GitHub PR 코드 리뷰 | development | PR 생성 시 → AI 리뷰 → GitHub 코멘트 |
-| 구글 시트 → 리포트 PDF | productivity | 시트 데이터 → AI 분석 → PDF 출력 |
+| 학습 노트 자동 생성 | storage | Google Drive 입력 → AI 요약 → Notion 저장 |
+| 회의록 요약 및 공유 | communication | 회의 녹취 → AI 정리 → Slack 전송 |
+| 뉴스 수집 및 정리 | web_crawl | 네이버 뉴스 수집 → AI 요약 → Google Sheets 기록 |
+| 구글 시트 → 리포트 PDF | spreadsheet | 시트 데이터 → AI 분석 → PDF 출력 |
 
 **커밋:** `feat: add template management`
 
@@ -759,7 +766,7 @@ public class OAuthToken {
     @Id
     private String id;
     private String userId;              // ref → users
-    private String service;             // google | slack | notion | github
+    private String service;             // google | slack | notion
     private String accessToken;         // AES-256 암호화
     private String refreshToken;        // AES-256 암호화
     private String tokenType;           // Bearer
@@ -781,14 +788,13 @@ public class OAuthToken {
 | GET | `/api/oauth-tokens/{service}/callback` | OAuth 콜백 (토큰 저장) |
 | DELETE | `/api/oauth-tokens/{service}` | 서비스 연결 해제 (토큰 삭제) |
 
-**관리 대상 서비스:**
+**관리 대상 서비스 (요구사항 SFR-03 기준):**
 
 | 서비스 | OAuth 타입 | 스코프 (예시) |
 |--------|-----------|-------------|
-| Google (Drive/Sheets/Gmail) | OAuth 2.0 | drive.readonly, spreadsheets, gmail.send |
+| Google (Drive/Sheets/Gmail/Calendar) | OAuth 2.0 | drive.readonly, spreadsheets, gmail.send, calendar.events |
 | Slack | OAuth 2.0 | chat:write, channels:read |
 | Notion | Internal Integration | - (토큰 기반) |
-| GitHub | OAuth 2.0 | repo, issues |
 
 **토큰 자동 갱신 전략 (Lazy Refresh):**
 ```
@@ -856,11 +862,124 @@ Body:
 
 ---
 
-## 6. Phase 5: 안정화 및 배포 준비
+## 6. Phase 5: 워크플로우 검증 및 고급 기능
+
+> 목표: 요구사항 명세서(EXR-01~08, SFR-04)에 정의된 유효성 검증, 스냅샷/롤백, 이기종 데이터 변환, 재시도 정책 구현
+
+### Step 5-1. 워크플로우 유효성 검증 서비스
+
+**생성 파일:**
+
+| 파일 | 설명 |
+|------|------|
+| `workflow/service/WorkflowValidator.java` | 워크플로우 구조 유효성 검증 |
+
+**검증 항목 (EXR-05 대응):**
+- 필수 노드 존재 여부 (트리거 또는 수동 실행 설정)
+- 노드 간 연결 끊김 검출 (연결되지 않은 고립 노드)
+- 순환 참조(Cycle) 검출 (DFS 기반)
+- 필수 설정값 누락 검출 (노드별 config 필수 필드)
+- 노드 타입 간 호환성 검증 (service 노드에 OAuth 연동 필요 여부)
+
+**적용 시점:**
+- `POST /api/workflows/{id}/execute` 실행 전 필수 수행
+- 검증 실패 시 `WORKFLOW_VALIDATION_FAILED` 에러 반환
+- 오류 노드 ID 목록을 응답에 포함
+
+**커밋:** `feat: add workflow structure validation service`
+
+---
+
+### Step 5-2. 스냅샷 및 롤백 메커니즘
+
+**생성 파일:**
+
+| 파일 | 설명 |
+|------|------|
+| `execution/domain/NodeSnapshot.java` | 노드 실행 전 상태 스냅샷 임베디드 문서 |
+| `execution/service/SnapshotService.java` | 스냅샷 저장 및 롤백 로직 |
+
+**동작 흐름 (EXR-06 대응):**
+```
+1. 각 노드 실행 전: 현재 상태를 NodeSnapshot으로 캡처
+2. 노드 실행 성공: snapshot 유지 (디버깅용)
+3. 노드 실행 실패:
+   a. 해당 노드를 FAILED 상태로 전환
+   b. 이후 노드 실행 중단
+   c. 전체 워크플로우 상태를 ROLLBACK_AVAILABLE로 전환
+4. 롤백 요청 시: 마지막 성공 스냅샷으로 복원 후 재실행 가능
+```
+
+**엔드포인트 추가:**
+
+| Method | Path | 설명 |
+|--------|------|------|
+| POST | `/api/workflows/{id}/executions/{execId}/rollback` | 특정 실행의 롤백 요청 |
+
+**커밋:** `feat: add snapshot-based rollback mechanism`
+
+---
+
+### Step 5-3. 외부 API 재시도 정책
+
+**생성 파일:**
+
+| 파일 | 설명 |
+|------|------|
+| `common/retry/RetryPolicy.java` | 재시도 정책 공통 모듈 |
+
+**재시도 규칙 (EXR-01, EXR-03 대응):**
+- 외부 서비스 API 오류 (EXR-01): 최대 3회, Exponential Backoff (1s → 2s → 4s)
+- LLM API 오류 (EXR-03): Rate Limit → 대기 후 재시도, 서버 오류 → 최대 2회 재시도
+- OAuth 토큰 만료 (EXR-02): Refresh Token 자동 갱신 1회 시도 → 실패 시 재인증 안내
+
+**커밋:** `feat: add external API retry policy`
+
+---
+
+### Step 5-4. 이기종 데이터 변환 모듈
+
+**생성 파일:**
+
+| 파일 | 설명 |
+|------|------|
+| `workflow/service/DataConversionService.java` | 이기종 서비스 간 데이터 규격 변환 |
+
+**동작 (EXR-08, UC-P06 대응):**
+- 서로 다른 외부 서비스(Gmail → Notion, Google Sheets → Slack 등) 간 데이터 전달 시 공통 DTO 포맷으로 자동 변환
+- 변환 실패 시 `DATA_CONVERSION_FAILED` 에러 반환 및 수동 매핑 안내
+- Adapter 패턴 기반 서비스별 변환기 구현
+
+**커밋:** `feat: add cross-service data conversion module`
+
+---
+
+### Step 5-5. 워크플로우 고급 기능 테스트
+
+**생성 파일:**
+
+| 파일 | 설명 |
+|------|------|
+| `workflow/WorkflowValidatorTest.java` | 유효성 검증 단위 테스트 |
+| `execution/SnapshotServiceTest.java` | 스냅샷/롤백 단위 테스트 |
+| `common/retry/RetryPolicyTest.java` | 재시도 정책 단위 테스트 |
+
+**테스트 항목:**
+- 순환 참조 워크플로우 검증 실패
+- 필수 노드 누락 검증 실패
+- 정상 워크플로우 검증 통과
+- 노드 실패 시 스냅샷 생성 및 롤백 동작
+- 외부 API 재시도 횟수 및 Backoff 검증
+
+**커밋:** `test: add workflow validation, snapshot and retry tests`
+
+---
+
+## 7. Phase 6: 안정화 및 배포 준비
 
 > 목표: API 문서화, 시드 데이터, 통합 테스트, Docker 최적화, 보안 검수
 
-### Step 5-1. Swagger API 문서화
+### Step 6-1. Swagger API 문서화
 
 **작업 내용:**
 - SpringDoc 기반 Swagger UI 설정 완성
@@ -872,7 +991,7 @@ Body:
 
 ---
 
-### Step 5-2. 기본 제공 템플릿 시드 데이터
+### Step 6-2. 기본 제공 템플릿 시드 데이터
 
 **작업 내용:**
 - `CommandLineRunner` 기반 초기 데이터 로딩
@@ -886,7 +1005,7 @@ Body:
 
 ---
 
-### Step 5-3. 통합 테스트
+### Step 6-3. 통합 테스트
 
 **작업 내용:**
 - Testcontainers를 이용한 MongoDB 통합 테스트 환경
@@ -907,7 +1026,7 @@ testImplementation 'org.testcontainers:junit-jupiter:1.19.x'
 
 ---
 
-### Step 5-4. Docker 배포 최적화
+### Step 6-4. Docker 배포 최적화
 
 **작업 내용:**
 - Dockerfile 최적화:
@@ -922,7 +1041,7 @@ testImplementation 'org.testcontainers:junit-jupiter:1.19.x'
 
 ---
 
-### Step 5-5. 성능 및 보안 검수
+### Step 6-5. 성능 및 보안 검수
 
 **작업 내용:**
 - Spring Security 설정 최종 점검:
@@ -943,7 +1062,7 @@ testImplementation 'org.testcontainers:junit-jupiter:1.19.x'
 
 ---
 
-## 7. 전체 파일 생성 목록
+## 8. 전체 파일 생성 목록
 
 ### 소스 파일 (`src/main/java/org/github/flowify/`)
 
@@ -980,7 +1099,9 @@ workflow/
 ├── controller/
 │   └── WorkflowController.java
 ├── service/
-│   └── WorkflowService.java
+│   ├── WorkflowService.java
+│   ├── WorkflowValidator.java
+│   └── DataConversionService.java
 ├── repository/
 │   └── WorkflowRepository.java
 ├── domain/
@@ -996,11 +1117,13 @@ execution/
 │   └── ExecutionController.java
 ├── service/
 │   ├── ExecutionService.java
-│   └── FastApiClient.java
+│   ├── FastApiClient.java
+│   └── SnapshotService.java
 ├── repository/
 │   └── ExecutionRepository.java
 └── domain/
-    └── WorkflowExecution.java
+    ├── WorkflowExecution.java
+    └── NodeSnapshot.java
 template/
 ├── controller/
 │   └── TemplateController.java
@@ -1025,9 +1148,11 @@ common/
 │   ├── GlobalExceptionHandler.java
 │   ├── BusinessException.java
 │   └── ErrorCode.java
-└── dto/
-    ├── ApiResponse.java
-    └── PageResponse.java
+├── dto/
+│   ├── ApiResponse.java
+│   └── PageResponse.java
+└── retry/
+    └── RetryPolicy.java
 health/
 └── controller/
     └── HealthController.java
@@ -1041,7 +1166,12 @@ application-dev.yml             (신규)
 docs/
 ├── PROJECT_ANALYSIS.md         (기존 유지)
 ├── SPRING_BOOT_DESIGN.md       (기존 유지)
-└── DEVELOPMENT_PLAN.md         (본 문서)
+├── DEVELOPMENT_PLAN.md         (본 문서)
+└── requirements/               (요구사항 명세서)
+    ├── REQUIREMENTS_INDEX.md
+    ├── FUNCTIONAL_REQUIREMENTS.md
+    ├── NON_FUNCTIONAL_REQUIREMENTS.md
+    └── ACCEPTANCE_CRITERIA.md
 ```
 
 ### 테스트 파일 (`src/test/java/org/github/flowify/`)
@@ -1056,9 +1186,14 @@ user/
 └── UserServiceTest.java
 workflow/
 ├── WorkflowServiceTest.java
-└── WorkflowControllerTest.java
+├── WorkflowControllerTest.java
+└── WorkflowValidatorTest.java
 execution/
-└── ExecutionServiceTest.java
+├── ExecutionServiceTest.java
+└── SnapshotServiceTest.java
+common/
+└── retry/
+    └── RetryPolicyTest.java
 template/
 └── TemplateServiceTest.java
 oauth/
@@ -1078,7 +1213,7 @@ docker-compose.yml              (신규)
 
 ---
 
-## 8. 커밋 히스토리 요약
+## 9. 커밋 히스토리 요약
 
 | # | Phase | 커밋 메시지 |
 |---|-------|-----------|
@@ -1102,15 +1237,20 @@ docker-compose.yml              (신규)
 | 18 | 4 | `feat: add OAuth token management` |
 | 19 | 4 | `feat: add FastAPI internal communication client` |
 | 20 | 4 | `test: add template and OAuth module tests` |
-| 21 | 5 | `docs: add Swagger API documentation` |
-| 22 | 5 | `feat: add system template seed data` |
-| 23 | 5 | `test: add integration tests` |
-| 24 | 5 | `infra: optimize Docker deployment configuration` |
-| 25 | 5 | `fix: security and performance review improvements` |
+| 21 | 5 | `feat: add workflow structure validation service` |
+| 22 | 5 | `feat: add snapshot-based rollback mechanism` |
+| 23 | 5 | `feat: add external API retry policy` |
+| 24 | 5 | `feat: add cross-service data conversion module` |
+| 25 | 5 | `test: add workflow validation, snapshot and retry tests` |
+| 26 | 6 | `docs: add Swagger API documentation` |
+| 27 | 6 | `feat: add system template seed data` |
+| 28 | 6 | `test: add integration tests` |
+| 29 | 6 | `infra: optimize Docker deployment configuration` |
+| 30 | 6 | `fix: security and performance review improvements` |
 
 ---
 
-## 9. MongoDB 컬렉션 전체 요약
+## 10. MongoDB 컬렉션 전체 요약
 
 | 컬렉션 | 소유 서비스 | 읽기 | 쓰기 |
 |--------|-----------|------|------|
@@ -1123,7 +1263,7 @@ docker-compose.yml              (신규)
 
 ---
 
-## 10. 주의사항
+## 11. 주의사항
 
 ### Git 커밋/푸시 규칙
 - 공동작성자(Co-authored-by) 헤더를 포함하지 않는다

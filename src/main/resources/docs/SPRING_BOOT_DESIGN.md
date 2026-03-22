@@ -183,7 +183,29 @@ HTTP Request
 | GET | `/api/workflows/{id}/executions/{execId}` | 실행 상세 (로그 포함) |
 | POST | `/api/workflows/{id}/share` | 워크플로우 공유 설정 |
 
-### 4.2 워크플로우 컬렉션 스키마
+### 4.2 노드 타입 체계
+
+요구사항 명세서(SFR-02~06)에 정의된 노드 분류 체계를 기반으로, 노드를 **카테고리(category)** 와 **타입(type)** 으로 계층 구분한다.
+
+| 카테고리 | type 값 | 대응 UC | 설명 |
+|---------|---------|--------|------|
+| **service** (서비스 연동) | `communication` | UC-S01 | Gmail, Slack 등 커뮤니케이션 |
+| | `storage` | UC-S02 | Google Drive, Notion 등 저장소 |
+| | `spreadsheet` | UC-S03 | Google Sheets 스프레드시트 |
+| | `web_crawl` | UC-S04 | 쿠팡, 원티드, 네이버 뉴스 등 웹 수집 |
+| | `calendar` | UC-S05 | Google Calendar 캘린더 |
+| **processing** (프로세싱/로직) | `trigger` | UC-P01 | 시간/이벤트 기반 트리거 |
+| | `filter` | UC-P02 | 필터링 및 중복 제거 |
+| | `loop` | UC-P03 | 반복 처리 |
+| | `condition` | UC-P04 | 조건 비교 및 분기 |
+| | `multi_output` | UC-P05 | 다중 출력 |
+| | `data_process` | UC-P06 | 데이터 변환/집계/정렬/분류 |
+| | `output_format` | UC-P07 | 출력 포맷 지정 |
+| | `early_stop` | UC-P08 | 조기 종료 |
+| | `notification` | UC-P09 | 알림 전송 |
+| **ai** (AI 지능형) | `llm` | UC-A01 | LLM 기반 AI 처리 |
+
+### 4.3 워크플로우 컬렉션 스키마
 
 ```json
 // Collection: workflows
@@ -198,24 +220,37 @@ HTTP Request
   "nodes": [
     {
       "id": "node_1",
-      "type": "input",                     // input | llm | if_else | loop | output
+      "category": "service",               // service | processing | ai
+      "type": "storage",                    // 카테고리별 하위 타입 (위 표 참조)
       "config": {
-        "source": "google_drive",
+        "service": "google_drive",
         "folder_id": "abc123"
       },
       "position": { "x": 100, "y": 200 }
     },
     {
       "id": "node_2",
+      "category": "ai",
       "type": "llm",
       "config": {
         "prompt": "이 문서를 요약해주세요"
       },
       "position": { "x": 400, "y": 200 }
+    },
+    {
+      "id": "node_3",
+      "category": "service",
+      "type": "storage",
+      "config": {
+        "service": "notion",
+        "page_id": "xyz789"
+      },
+      "position": { "x": 700, "y": 200 }
     }
   ],
   "edges": [
-    { "source": "node_1", "target": "node_2" }
+    { "source": "node_1", "target": "node_2" },
+    { "source": "node_2", "target": "node_3" }
   ],
   "trigger": {                             // 트리거 설정 (null이면 수동 실행만)
     "type": "schedule",                    // schedule | event
@@ -234,7 +269,7 @@ HTTP Request
 - `user_id` + `is_template`: compound index
 - `shared_with`: multikey index
 
-### 4.3 소유권 및 접근 제어
+### 4.4 소유권 및 접근 제어
 
 ```
 접근 규칙:
@@ -254,10 +289,11 @@ HTTP Request
 
 | 서비스 | OAuth 타입 | 스코프 (예시) |
 |--------|-----------|-------------|
-| Google (Drive/Sheets/Gmail) | OAuth 2.0 | drive.readonly, spreadsheets, gmail.send |
+| Google (Drive/Sheets/Gmail/Calendar) | OAuth 2.0 | drive.readonly, spreadsheets, gmail.send, calendar.events |
 | Slack | OAuth 2.0 | chat:write, channels:read |
 | Notion | Internal Integration | - (토큰 기반) |
-| GitHub | OAuth 2.0 | repo, issues |
+
+> 참고: 요구사항 명세서(SFR-03) 기준 서비스 연동 범위는 Gmail, Slack, Google Drive, Notion, Google Sheets, 웹 수집(쿠팡, 원티드, 네이버 뉴스 등), Google Calendar이다. GitHub 연동은 현재 요구사항 범위에 포함되지 않는다.
 
 ### 5.2 oauth_tokens 컬렉션 스키마
 
@@ -266,7 +302,7 @@ HTTP Request
 {
   "_id": "ObjectId",
   "user_id": "ObjectId (ref → users)",
-  "service": "google",                     // google | slack | notion | github
+  "service": "google",                     // google | slack | notion
   "access_token": "AES256_ENCRYPTED(...)", // 암호화된 액세스 토큰
   "refresh_token": "AES256_ENCRYPTED(...)",// 암호화된 리프레시 토큰
   "token_type": "Bearer",
@@ -353,7 +389,7 @@ Body:
   "_id": "ObjectId",
   "name": "학습 노트 자동 생성",
   "description": "강의 자료 입력 → AI 요약 → Notion 저장",
-  "category": "education",                 // education | productivity | development
+  "category": "communication",              // communication | storage | spreadsheet | web_crawl | calendar
   "icon": "book",
   "nodes": [ ... ],                        // 사전 정의된 노드 구성
   "edges": [ ... ],
@@ -365,14 +401,14 @@ Body:
 }
 ```
 
-#### 기본 제공 템플릿 (제안서 기준)
+#### 기본 제공 템플릿 (요구사항 기준)
 
-| 이름 | 구성 |
-|------|------|
-| 학습 노트 자동 생성 | 강의 자료 입력 → AI 요약 → Notion 저장 |
-| 회의록 요약 및 공유 | 회의 녹취 → AI 정리 → Slack 전송 |
-| GitHub PR 코드 리뷰 | PR 생성 시 → AI 리뷰 → GitHub 코멘트 |
-| 구글 시트 → 리포트 PDF | 시트 데이터 → AI 분석 → PDF 출력 |
+| 이름 | 카테고리 | 구성 |
+|------|---------|------|
+| 학습 노트 자동 생성 | storage | Google Drive 입력 → AI 요약 → Notion 저장 |
+| 회의록 요약 및 공유 | communication | 회의 녹취 → AI 정리 → Slack 전송 |
+| 뉴스 수집 및 정리 | web_crawl | 네이버 뉴스 수집 → AI 요약 → Google Sheets 기록 |
+| 구글 시트 → 리포트 PDF | spreadsheet | 시트 데이터 → AI 분석 → PDF 출력 |
 
 #### 템플릿 API
 
@@ -413,14 +449,18 @@ Body:
   "_id": "ObjectId",
   "workflow_id": "ObjectId",
   "user_id": "ObjectId",
-  "state": "success",                      // pending | running | success | failed
+  "state": "success",                      // pending | running | success | failed | rollback_available
   "node_logs": [
     {
       "node_id": "node_1",
-      "status": "success",
+      "status": "success",                 // pending | running | success | failed | skipped
       "input_data": { "source": "google_drive" },
       "output_data": { "files": ["file1.pdf", "file2.pdf"] },
-      "error": null,
+      "snapshot": {                        // 실행 전 상태 스냅샷 (롤백용, EXR-06)
+        "captured_at": "ISODate",
+        "state_data": { ... }
+      },
+      "error": null,                       // 실패 시: { code, message, stack_trace }
       "started_at": "ISODate",
       "finished_at": "ISODate"
     }
@@ -428,6 +468,17 @@ Body:
   "started_at": "ISODate",
   "finished_at": "ISODate"
 }
+```
+
+**상태 전이 규칙:**
+
+```
+PENDING → RUNNING → SUCCESS
+                  → FAILED → ROLLBACK_AVAILABLE (스냅샷 존재 시)
+```
+
+- `ROLLBACK_AVAILABLE`: 실패 후 스냅샷이 존재하여 롤백이 가능한 상태
+- 롤백 실행 후 해당 노드부터 재실행 가능
 ```
 
 ---
@@ -672,17 +723,23 @@ spring/
 
 ### 에러 코드 체계
 
-| 코드 | HTTP Status | 설명 |
-|------|-------------|------|
-| `AUTH_INVALID_TOKEN` | 401 | JWT 유효하지 않음 |
-| `AUTH_EXPIRED_TOKEN` | 401 | JWT 만료 |
-| `AUTH_FORBIDDEN` | 403 | 권한 없음 |
-| `WORKFLOW_NOT_FOUND` | 404 | 워크플로우 없음 |
-| `WORKFLOW_ACCESS_DENIED` | 403 | 워크플로우 접근 권한 없음 |
-| `OAUTH_NOT_CONNECTED` | 400 | 필요한 서비스 미연결 |
-| `OAUTH_TOKEN_EXPIRED` | 400 | 외부 토큰 갱신 실패 |
-| `EXECUTION_FAILED` | 500 | 실행 실패 |
-| `FASTAPI_UNAVAILABLE` | 503 | FastAPI 서비스 접근 불가 |
+| 코드 | HTTP Status | 설명 | 관련 예외 요구사항 |
+|------|-------------|------|----------------|
+| `AUTH_INVALID_TOKEN` | 401 | JWT 유효하지 않음 | - |
+| `AUTH_EXPIRED_TOKEN` | 401 | JWT 만료 | - |
+| `AUTH_FORBIDDEN` | 403 | 권한 없음 | - |
+| `WORKFLOW_NOT_FOUND` | 404 | 워크플로우 없음 | - |
+| `WORKFLOW_ACCESS_DENIED` | 403 | 워크플로우 접근 권한 없음 | - |
+| `WORKFLOW_VALIDATION_FAILED` | 400 | 워크플로우 구조 유효성 오류 (순환참조, 필수노드 누락 등) | EXR-05 |
+| `OAUTH_NOT_CONNECTED` | 400 | 필요한 서비스 미연결 | - |
+| `OAUTH_TOKEN_EXPIRED` | 400 | 외부 토큰 갱신 실패 | EXR-02 |
+| `EXTERNAL_API_ERROR` | 502 | 외부 서비스 API 연결 오류 (네트워크, 타임아웃, 5xx) | EXR-01 |
+| `LLM_API_ERROR` | 502 | LLM API 호출 오류 (서버 오류, Rate Limit, 타임아웃) | EXR-03 |
+| `LLM_GENERATION_FAILED` | 422 | LLM 기반 워크플로우 자동 생성 실패 (모호한 입력, 변환 불가) | EXR-04 |
+| `EXECUTION_FAILED` | 500 | 워크플로우 실행 중 노드 오류 | EXR-06 |
+| `CRAWL_FAILED` | 502 | 웹 수집 오류 (사이트 구조 변경, 봇 차단, 접속 불가) | EXR-07 |
+| `DATA_CONVERSION_FAILED` | 422 | 이기종 데이터 규격 변환 오류 (필드 매핑 실패, 타입 불일치) | EXR-08 |
+| `FASTAPI_UNAVAILABLE` | 503 | FastAPI 서비스 접근 불가 | - |
 
 ---
 
