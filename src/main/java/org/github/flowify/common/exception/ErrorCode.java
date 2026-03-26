@@ -19,6 +19,7 @@ public enum ErrorCode {
     // Workflow
     WORKFLOW_NOT_FOUND(HttpStatus.NOT_FOUND, "워크플로우를 찾을 수 없습니다."),
     WORKFLOW_ACCESS_DENIED(HttpStatus.FORBIDDEN, "워크플로우 접근 권한이 없습니다."),
+    WORKFLOW_VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "워크플로우 유효성 검증에 실패했습니다."),
 
     // OAuth
     OAUTH_NOT_CONNECTED(HttpStatus.BAD_REQUEST, "필요한 서비스가 연결되지 않았습니다."),
@@ -30,6 +31,13 @@ public enum ErrorCode {
     // Execution
     EXECUTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "워크플로우 실행에 실패했습니다."),
     EXECUTION_NOT_FOUND(HttpStatus.NOT_FOUND, "실행 이력을 찾을 수 없습니다."),
+
+    // External API
+    EXTERNAL_API_ERROR(HttpStatus.BAD_GATEWAY, "외부 서비스 API 호출에 실패했습니다."),
+    LLM_API_ERROR(HttpStatus.BAD_GATEWAY, "LLM API 호출에 실패했습니다."),
+    LLM_GENERATION_FAILED(HttpStatus.UNPROCESSABLE_ENTITY, "LLM 기반 워크플로우 생성에 실패했습니다."),
+    CRAWL_FAILED(HttpStatus.BAD_GATEWAY, "웹 수집에 실패했습니다."),
+    DATA_CONVERSION_FAILED(HttpStatus.UNPROCESSABLE_ENTITY, "데이터 규격 변환에 실패했습니다."),
 
     // FastAPI
     FASTAPI_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "AI 서비스에 접근할 수 없습니다."),
