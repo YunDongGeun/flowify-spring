@@ -467,10 +467,10 @@
 |--------|--------|------|------|
 | id | private | String | 노드 고유 ID (e.g., "node_1") |
 | category | private | String | 노드 카테고리 (communication \| storage \| spreadsheet \| web_crawl \| calendar \| ai \| processing) |
-| type | private | String | 노드 타입 (communication, storage, spreadsheet, web_crawl, calendar, trigger, filter, loop, condition, multi_output, data_process, output_format, early_stop, notification, llm) |
+| type | private | String | 노드 타입 (시작/도도착 노드: 서비스 ID (gmail, slack 등) | 중간 노드: LOOP, CONDITION_BRANCH, AI, DATA_FILTER, AI_FILTER, PASSTHROUGH) |
 | config | private | Map\<String, Object\> | 노드별 설정값 |
 | position | private | Position | 캔버스 좌표 {x, y} |
-| dataType | private | String | 입력 데이터 타입 (file_list \| single_file \| text \| spreadsheet \| email_list \| api_response) |
+| dataType | private | String | 입력 데이터 타입 (FILE_LIST | SINGLE_FILE | TEXT | SPREADSHEET_DATA | EMAIL_LIST | SINGLE_EMAIL | API_RESPONSE | SCHEDULE_DATA) |
 | outputDataType | private | String | 출력 데이터 타입 (노드 처리 결과에 따라 변환될 수 있음) |
 | role | private | String | 노드 역할 (start \| end \| middle) — 가이드형 생성 흐름에서의 위치 |
 | authWarning | private | boolean | 미인증 서비스 경고 여부 (템플릿에서 가져온 노드용). Default: false |

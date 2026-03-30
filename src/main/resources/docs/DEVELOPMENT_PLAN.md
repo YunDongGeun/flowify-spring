@@ -544,10 +544,14 @@ public class Workflow {
 ```java
 public class NodeDefinition {
     private String id;            // "node_1"
-    private String category;      // service | processing | ai
-    private String type;          // 카테고리별 하위 타입 (SPRING_BOOT_DESIGN.md 4.2 참조)
+    private String category;      // communication | storage | spreadsheet | web_crawl | calendar | ai | processing
+    private String type;          // 시작/도착 노드: 서비스 ID (gmail, slack 등) | 중간 노드: LOOP, CONDITION_BRANCH, AI, DATA_FILTER, AI_FILTER, PASSTHROUGH
     private Map<String, Object> config;    // 노드별 설정
     private Position position;    // { x, y } 캔버스 좌표
+    private String dataType;      // 입력 데이터 타입 (FILE_LIST | SINGLE_FILE | TEXT | SPREADSHEET_DATA | EMAIL_LIST | SINGLE_EMAIL | API_RESPONSE | SCHEDULE_DATA)
+    private String outputDataType;// 출력 데이터 타입
+    private String role;          // start | end | middle
+    private boolean authWarning;  // 미인증 서비스 경고
 }
 ```
 
