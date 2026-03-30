@@ -24,6 +24,16 @@
 | Docker | Phase 1에서 바로 구성 | 로컬 개발 환경 우선 |
 | GitHub Remote | `https://github.com/Shelter-of-the-old-people/flowify-BE-spring` | |
 
+### 프로젝트 마일스톤 (update.md 반영)
+
+| 기간 | 목표 |
+|------|------|
+| ~ 2026-04-01 | 설계 발표. 전체 요구사항을 설계 문서에 반영 |
+| ~ 2026-04-29 (중간 발표) | 직접 설정 기능 완성 (UC-W01-A~D, ChoiceMappingService) |
+| 2026-04-29 ~ 2026-06-17 (최종 제출) | AI 학습 및 채팅형 생성 기능 구현 (UC-W02) |
+
+> **개발 순서 원칙**: 직접 설정 기능(UC-W01-D)을 먼저 구현하고, 이를 AI에게 학습시켜 채팅형 생성을 구현한다.
+
 ---
 
 ## 2. Phase 1: 기반 구축

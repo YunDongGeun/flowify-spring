@@ -2,14 +2,16 @@
 
 ## 1. 시스템 개요
 
-Flowify는 비전문가가 AI 자동화 파이프라인을 **코드 없이** 구축할 수 있는 노드 기반 워크플로우 플랫폼이다. **[입력 → AI 처리 → 출력]** 의 3단계 구조로 동작한다.
+Flowify는 비전문가가 AI 자동화 파이프라인을 **코드 없이** 구축할 수 있는 노드 기반 워크플로우 플랫폼이다. **[입력 → AI 처리 → 출력]** 의 3단계 구조로 동작하며, 사용자에게 기술 용어를 노출하지 않고 일상 언어 기반의 가이드형 설정을 제공한다.
 
 Spring Boot 백엔드는 다음을 담당한다:
 - Google OAuth 2.0 SSO 인증 및 JWT 세션 관리
 - 워크플로우 CRUD 및 소유권/공유 관리
+- **가이드형 워크플로우 생성** (시작 노드 → 도착 노드 → 중간 과정 순서)
+- **데이터 타입 기반 동적 선택지 매핑** (ChoiceMappingService → `mapping_rules.json` 설정 파일 기반)
 - 워크플로우 실행을 FastAPI AI 서비스에 위임 및 실행 이력 제공
 - 외부 서비스(Google, Slack, Notion) OAuth 토큰의 암호화 저장/자동 갱신
-- 시스템/사용자 워크플로우 템플릿 관리
+- 시스템/사용자 워크플로우 템플릿 관리 (미인증 서비스 경고 포함)
 
 ---
 
@@ -49,7 +51,7 @@ Spring Boot 백엔드는 다음을 담당한다:
 | `workflow_executions` | 실행 이력 및 노드별 로그 | workflowId, userId | Spring Boot(조회), FastAPI(기록) |
 
 ### 주요 임베디드 구조
-- **workflows.nodes[]**: id, category(service|processing|ai), type, config, position
+- **workflows.nodes[]**: id, category(communication|storage|spreadsheet|web_crawl|calendar|ai|processing), type, config, position, dataType, outputDataType, role(start|end|middle), authWarning
 - **workflows.edges[]**: source, target
 - **workflow_executions.nodeLogs[]**: nodeId, status, inputData, outputData, snapshot, error, startedAt, finishedAt
 
