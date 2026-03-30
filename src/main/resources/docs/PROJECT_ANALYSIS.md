@@ -45,12 +45,12 @@
                            ▼
                     ┌──────────────────┐     ┌─────────────────┐
                     │  FastAPI         │────▶│  Vector Store   │
-                    │  (AI 서비스)      │     │  (FAISS/Chroma) │
+                    │  (AI 서비스)      │     │  (Chroma)       │
                     └──────────────────┘     └─────────────────┘
                            │
                            ▼
                     ┌──────────────────┐
-                    │  LLM (EXAONE)    │
+                    │  LLM (GPT-4o)    │
                     │  via LangChain   │
                     └──────────────────┘
 ```
@@ -68,7 +68,7 @@
 - 자연어 프롬프트 기반 데이터 처리 (요약, 분류, 질문 생성)
 - LangChain을 통한 LLM 통합 인터페이스
 - 프롬프트 템플릿 관리 및 체이닝
-- 한국어 최적화 LLM(EXAONE 등) 연동
+- OpenAI GPT-4o 연동
 
 ### 3.2 워크플로우 실행 엔진
 - 노드 기반 파이프라인 실행 (Trigger → Input → AI처리 → Logic → Output)
@@ -88,7 +88,7 @@
 - 웹훅 기반 실시간 이벤트 감지
 
 ### 3.5 벡터 검색 서비스
-- FAISS / Chroma 기반 지식 베이스 구축
+- Chroma 기반 지식 베이스 구축
 - 문서 임베딩 및 유사도 검색
 - RAG(Retrieval-Augmented Generation) 파이프라인
 
@@ -134,7 +134,7 @@ flowify-BE/
 │   ├── services/
 │   │   ├── __init__.py
 │   │   ├── llm_service.py         # LangChain + LLM 서비스
-│   │   ├── vector_service.py      # FAISS/Chroma 벡터 검색
+│   │   ├── vector_service.py      # Chroma 벡터 검색
 │   │   ├── scheduler_service.py   # APScheduler 스케줄링
 │   │   └── integrations/
 │   │       ├── __init__.py
@@ -251,8 +251,8 @@ class ConditionNodeStrategy(NodeStrategy):
 |------|------|------|
 | 프레임워크 | FastAPI | 비동기 기반 REST API 서버 |
 | AI 오케스트레이션 | LangChain | LLM 통합, 프롬프트 관리, 체이닝 |
-| LLM | EXAONE (한국어 최적화) | 요약/분류/질문 생성 |
-| 벡터 스토어 | FAISS, Chroma | 지식 베이스, 유사도 검색 |
+| LLM | OpenAI GPT-4o | 요약/분류/질문 생성 |
+| 벡터 스토어 | Chroma | 지식 베이스, 유사도 검색 |
 | DB | MongoDB (Motor) | 비정형 데이터 비동기 접근 |
 | 스케줄링 | APScheduler | 시간 기반 트리거 |
 | 외부 연동 | google-api-python-client, slack-sdk, notion-client | 서비스 API 연동 (요구사항 SFR-03 기준) |
@@ -308,7 +308,7 @@ class ConditionNodeStrategy(NodeStrategy):
 - [ ] 실행 로그 및 디버깅
 
 ### Phase 5: 안정화 (6월)
-- [ ] 벡터 검색 서비스 (FAISS/Chroma)
+- [ ] 벡터 검색 서비스 (Chroma)
 - [ ] 성능 최적화 및 캐싱
 - [ ] 통합 테스트
 - [ ] Docker 배포 최적화

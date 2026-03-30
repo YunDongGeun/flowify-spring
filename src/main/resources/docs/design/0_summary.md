@@ -156,6 +156,15 @@ Spring Boot 백엔드는 다음을 담당한다:
 | POST | `/api/workflows/{id}/share` | 공유 설정 |
 | POST | `/api/workflows/generate` | LLM 기반 워크플로우 자동 생성 (UC-W02) |
 
+### 선택지 및 노드 (UC-W01-D 직접 설정)
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| GET | `/api/workflows/{id}/choices/{prevNodeId}` | 이전 노드 outputDataType 기반 선택지 조회 |
+| POST | `/api/workflows/{id}/choices/{prevNodeId}/select` | 사용자 선택 전송 → 후속 설정 또는 노드 타입 확정 |
+| POST | `/api/workflows/{id}/nodes` | 확정된 노드 추가 + edge 생성 |
+| PUT | `/api/workflows/{id}/nodes/{nodeId}` | 노드 설정 수정 |
+| DELETE | `/api/workflows/{id}/nodes/{nodeId}` | 노드 삭제 + 캐스케이드 |
+
 ### 실행
 | 메서드 | 경로 | 설명 |
 |--------|------|------|
@@ -205,3 +214,4 @@ Spring Boot 백엔드는 다음을 담당한다:
 2. **Spring Boot** → `HTTP + X-Internal-Token + X-User-ID` → **FastAPI** (실행 위임)
 3. **Spring Boot** ↔ **MongoDB** (사용자, 워크플로우, 토큰, 템플릿 관리)
 4. **FastAPI** → **MongoDB** (실행 이력 기록), **LLM/외부 API** (실제 실행)
+5. **프론트엔드 폴링**: React는 실행 요청 후 주기적으로 실행 상태 API를 호출하여 실시간 진행 상태를 표시한다.

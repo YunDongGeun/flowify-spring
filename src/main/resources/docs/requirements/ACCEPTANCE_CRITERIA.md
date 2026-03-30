@@ -129,14 +129,13 @@
 | 노드 (Node) | 워크플로우를 구성하는 개별 처리 단위. 입력, AI 처리, 로직, 출력 등의 역할을 수행 |
 | 캔버스 (Canvas) | 노드를 시각적으로 배치하고 연결하는 워크플로우 편집 영역 |
 | 트리거 (Trigger) | 워크플로우 실행을 시작하는 조건. 시간 기반 또는 이벤트 기반으로 설정 |
-| LLM (Large Language Model) | 대규모 언어 모델. 본 시스템에서는 EXAONE을 사용하여 자연어 처리 수행 |
-| EXAONE | LG AI Research에서 개발한 한국어 최적화 대규모 언어 모델 |
+| LLM (Large Language Model) | 대규모 언어 모델. 본 시스템에서는 OpenAI GPT-4o를 사용하여 자연어 처리 수행 |
+| GPT-4o | OpenAI에서 개발한 멀티모달 대규모 언어 모델 |
 | LangChain | LLM 기반 애플리케이션 개발을 위한 프레임워크. 프롬프트 관리, 체이닝, 에이전트 기능 제공 |
 | OAuth 2.0 | 외부 서비스 접근 권한을 안전하게 위임하기 위한 인증 프로토콜 |
 | SSO (Single Sign-On) | 하나의 인증으로 여러 서비스에 접근할 수 있는 통합 인증 방식 |
 | RAG (Retrieval-Augmented Generation) | 벡터 검색 기반 지식 베이스를 활용하여 LLM 응답 품질을 향상시키는 기법 |
-| FAISS | Facebook AI Similarity Search. 벡터 유사도 검색을 위한 라이브러리 |
-| Chroma | 오픈소스 임베딩 데이터베이스. 벡터 저장 및 검색 지원 |
+| Chroma | 오픈소스 임베딩 데이터베이스. 벡터 저장 및 유사도 검색 지원 |
 | Strategy 패턴 | 알고리즘을 캡슐화하여 동적으로 교체할 수 있게 하는 디자인 패턴. 노드 실행 로직에 적용 |
 | Factory 패턴 | 객체 생성 로직을 별도 클래스에 위임하는 디자인 패턴. 노드 인스턴스 생성에 적용 |
 | State 패턴 | 객체의 상태에 따라 행동을 변경하는 디자인 패턴. 워크플로우 상태 관리에 적용 |
@@ -155,10 +154,9 @@
 | 프레임워크 | FastAPI 공식 문서 | AI 서비스 서버 |
 | 프레임워크 | React 공식 문서 | 프론트엔드 |
 | AI | LangChain 공식 문서 | LLM 오케스트레이션 |
-| AI | EXAONE 모델 문서 | 한국어 최적화 LLM |
+| AI | OpenAI API 문서 | GPT-4o LLM |
 | DB | MongoDB 공식 문서 | Document DB |
 | DB | Motor 공식 문서 | 비동기 MongoDB 드라이버 |
-| 벡터 검색 | FAISS GitHub | 벡터 유사도 검색 |
 | 벡터 검색 | Chroma 공식 문서 | 임베딩 데이터베이스 |
 | 외부 API | Google Workspace API | Drive, Sheets, Gmail, Calendar |
 | 외부 API | Slack API | 메시징 연동 |

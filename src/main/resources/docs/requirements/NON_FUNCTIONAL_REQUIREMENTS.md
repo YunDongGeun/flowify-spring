@@ -38,7 +38,7 @@
 |----------|------|
 | 주 데이터베이스 | MongoDB (Document DB) |
 | 용도 | 워크플로우 정의, 실행 로그, 사용자 정보, 노드 설정 등 비정형 데이터 저장 |
-| 벡터 스토어 | FAISS / Chroma (RAG 파이프라인용 임베딩 저장 및 유사도 검색) |
+| 벡터 스토어 | Chroma (RAG 파이프라인용 임베딩 저장 및 유사도 검색) |
 | 접근 방식 | Motor (비동기 MongoDB 드라이버) |
 
 ---
@@ -74,7 +74,7 @@
 | Slack | REST API (HTTPS) | OAuth 2.0 |
 | Notion | REST API (HTTPS) | OAuth 2.0 |
 | 웹 수집 대상 (쿠팡, 원티드, 네이버 뉴스 등) | HTTP/HTTPS | 공개 접근 (크롤링) |
-| LLM (EXAONE) | REST API (HTTPS) | API Key |
+| LLM (GPT-4o) | REST API (HTTPS) | API Key |
 
 ---
 
@@ -182,7 +182,7 @@
 | **요구사항 식별자** | EXR-03 |
 | **요구사항명** | LLM API 오류 |
 | **구분** | 예외 요구사항 |
-| **발생 조건** | LLM(EXAONE) API 호출 시 서버 오류, Rate Limit 초과, 타임아웃 등이 발생한 경우 |
+| **발생 조건** | LLM(GPT-4o) API 호출 시 서버 오류, Rate Limit 초과, 타임아웃 등이 발생한 경우 |
 | **시스템 처리** | Rate Limit 초과 시 대기 후 자동 재시도한다. 서버 오류 시 최대 2회 재시도 후 실패 시 해당 AI 노드를 FAILED 상태로 전환하고, 오류 원인과 수동 재실행 방법을 안내한다. |
 
 ---

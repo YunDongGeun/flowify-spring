@@ -46,7 +46,7 @@
 | `templateId` | String | Nullable, ref → templates | 원본 템플릿 ID |
 | `nodes` | List\<NodeDefinition\> | | 노드 목록 (임베디드) |
 | `nodes[].id` | String | Not Null | 노드 고유 ID (e.g., "node_1") |
-| `nodes[].category` | String | Not Null | 노드 카테고리 (communication \| storage \| spreadsheet \| web_crawl \| calendar \| ai \| processing) |
+| `nodes[].category` | String | Not Null | 노드 카테고리 (communication \| storage \| spreadsheet \| web_crawl \| calendar \| development \| ai \| processing) |
 | `nodes[].type` | String | Not Null | 노드 타입 (카테고리별 하위 타입) |
 | `nodes[].config` | Map\<String, Object\> | | 노드별 설정 |
 | `nodes[].position` | Position | | 캔버스 좌표 {x, y} |

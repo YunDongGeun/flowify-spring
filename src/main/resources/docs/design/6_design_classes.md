@@ -355,6 +355,11 @@
 | deleteWorkflow | public | Authentication, String id | ApiResponse\<Void\> | DELETE /api/workflows/{id} — 워크플로우 삭제 |
 | shareWorkflow | public | Authentication, String id, ShareRequest | ApiResponse\<Void\> | POST /api/workflows/{id}/share — 공유 설정 (소유자만) |
 | generateWorkflow | public | Authentication, GenerateWorkflowRequest | ApiResponse\<WorkflowResponse\> | POST /api/workflows/generate — LLM 기반 워크플로우 자동 생성 (UC-W02). FastAPI에 위임 후 결과를 워크플로우로 저장 |
+| getNodeChoices | public | Authentication, String id, String prevNodeId | ApiResponse\<ChoiceResponse\> | GET /api/workflows/{id}/choices/{prevNodeId} — 이전 노드 outputDataType 기반 선택지 조회 |
+| selectNodeChoice | public | Authentication, String id, String prevNodeId, NodeChoiceSelectRequest | ApiResponse\<NodeSelectionResult\> | POST /api/workflows/{id}/choices/{prevNodeId}/select — 사용자 선택 전송 → 후속 설정 또는 노드 타입 확정 |
+| addMiddleNode | public | Authentication, String id, MiddleNodeRequest | ApiResponse\<WorkflowResponse\> | POST /api/workflows/{id}/nodes — 확정된 중간 노드 추가 + edge 생성 |
+| updateNode | public | Authentication, String id, String nodeId, NodeUpdateRequest | ApiResponse\<WorkflowResponse\> | PUT /api/workflows/{id}/nodes/{nodeId} — 노드 설정 수정 |
+| deleteNode | public | Authentication, String id, String nodeId | ApiResponse\<WorkflowResponse\> | DELETE /api/workflows/{id}/nodes/{nodeId} — 노드 삭제 + 후속 노드 캐스케이드 삭제 |
 
 ---
 
@@ -390,7 +395,10 @@
 | generateWorkflowFromPrompt | public | String userId, String prompt | WorkflowResponse | LLM 기반 워크플로우 자동 생성 (UC-W02). FastApiClient를 통해 LLM에 프롬프트 전송 → 반환된 노드/엣지 구조를 워크플로우로 저장. 실패 시 LLM_GENERATION_FAILED (EXR-04) |
 | setupStartNode | public | String userId, String workflowId, StartNodeRequest | WorkflowResponse | 시작 노드 설정 (UC-W01-A). 카테고리/서비스/실행 조건/데이터 대상 → 트리거 타입 내부 결정 |
 | setupEndNode | public | String userId, String workflowId, EndNodeRequest | WorkflowResponse | 도착 노드 설정 (UC-W01-B). 카테고리/서비스/동작 유형 → 세부 설정은 지연 |
+| getNodeChoices | public | String userId, String workflowId, String prevNodeId | ChoiceResponse | 이전 노드 outputDataType 기반 선택지 조회 |
+| selectNodeChoice | public | String userId, String workflowId, String prevNodeId, NodeChoiceSelectRequest | NodeSelectionResult | 사용자 선택 처리. node_type 결정 + follow_up/branch_config 반환 |
 | addMiddleNode | public | String userId, String workflowId, MiddleNodeRequest | WorkflowResponse | 중간 노드 추가 (UC-W01-D). 3단계 설정 흐름 → 사용자 선택 기반 노드 타입 결정 |
+| updateNode | public | String userId, String workflowId, String nodeId, NodeUpdateRequest | WorkflowResponse | 노드 설정 수정. 접근 권한 검증 |
 | deleteNodeCascade | public | String userId, String workflowId, String nodeId | WorkflowResponse | 노드 삭제 + 후속 노드 캐스케이드 삭제. 조건 분기 노드 삭제 시 모든 분기 경로 후속 삭제 |
 | chatGenerateWorkflow | public | String userId, String workflowId, ChatMessage | ChatResponse | 채팅형 AI 생성 (UC-W02). 반복 대화를 통한 워크플로우 생성 |
 | determineNodeType | private | String userChoice, String dataType | String | 사용자 선택 → 내부 노드 타입 매핑 (Loop, 조건 분기, AI 등) |
@@ -1166,7 +1174,7 @@
 | **클래스 식별자** | DC-C0801 |
 | **클래스 명** | ChoiceMappingService |
 
-**설명:** 데이터 타입 기반 동적 선택지 매핑 서비스. `docs/mapping_rules.json` 파일을 읽어 이전 노드의 출력 데이터 타입에 따라 다음 노드 설정에 필요한 선택지를 동적으로 제공한다.
+**설명:** 데이터 타입 기반 동적 선택지 매핑 서비스. `docs/mapping_rules.json` 파일을 읽어 이전 노드의 출력 데이터 타입에 따라 다음 노드 설정에 필요한 선택지를 동적으로 제공한다. **매 요청마다 파일을 읽지 않고 서버 시작 시 메모리에 캐싱하여 성능을 최적화한다.**
 
 **속성:**
 

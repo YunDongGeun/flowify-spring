@@ -142,6 +142,11 @@ DTO:
 │ + deleteWorkflow()                 │
 │ + shareWorkflow()                  │
 │ + generateWorkflow()               │
+│ + getNodeChoices()                 │  ← 이전 노드 기반 선택지 조회
+│ + selectNodeChoice()               │  ← 사용자 선택 전송
+│ + addMiddleNode()                  │  ← 확정된 중간 노드 추가
+│ + updateNode()                     │  ← 노드 설정 수정
+│ + deleteNode()                     │  ← 노드 삭제 + 캐스케이드
 └──────────┬─────────────────────────┘
            │ uses
            ▼
@@ -161,14 +166,17 @@ DTO:
 │ + deleteWorkflow()                 │
 │ + shareWorkflow()                  │
 │ + generateWorkflowFromPrompt()     │
-│ + setupStartNode()                 │  ← NEW: 시작 노드 설정 (UC-W01-A)
-│ + setupEndNode()                   │  ← NEW: 도착 노드 설정 (UC-W01-B)
-│ + addMiddleNode()                  │  ← NEW: 중간 노드 추가 (UC-W01-D)
-│ + deleteNodeCascade()              │  ← NEW: 노드 삭제 + 후속 노드 캐스케이드 삭제
-│ + chatGenerateWorkflow()           │  ← NEW: 채팅형 AI 생성 (UC-W02)
+│ + setupStartNode()                 │  ← 시작 노드 설정 (UC-W01-A)
+│ + setupEndNode()                   │  ← 도착 노드 설정 (UC-W01-B)
+│ + getNodeChoices()                 │  ← NEW: 이전 노드 기반 선택지 조회
+│ + selectNodeChoice()               │  ← NEW: 사용자 선택 처리
+│ + addMiddleNode()                  │  ← 중간 노드 추가 (UC-W01-D)
+│ + updateNode()                     │  ← NEW: 노드 설정 수정
+│ + deleteNodeCascade()              │  ← 노드 삭제 + 후속 노드 캐스케이드 삭제
+│ + chatGenerateWorkflow()           │  ← 채팅형 AI 생성 (UC-W02)
 │ - verifyOwnership()                │
 │ - verifyAccess()                   │
-│ - determineNodeType()              │  ← NEW: 사용자 선택 → 내부 노드 타입 결정
+│ - determineNodeType()              │  ← 사용자 선택 → 내부 노드 타입 결정
 └──────────┬─────────────────────────┘
            │ uses
            ▼
@@ -189,10 +197,10 @@ DTO:
 │ - name: String             │  │ - type: String          │  └───────────────────┘
 │ - description: String      │  │ - config: Map           │
 │ - userId: String           │  │ - position: Position    │
-│ - sharedWith: List<String> │  │ - dataType: String      │  ← NEW: 입력 데이터 타입
-│ - isTemplate: boolean      │  │ - outputDataType: String│  ← NEW: 출력 데이터 타입
-│ - templateId: String       │  │ - role: String          │  ← NEW: start|end|middle
-│ - nodes: List<NodeDef.>    │  │ - authWarning: boolean  │  ← NEW: 미인증 경고
+│ - sharedWith: List<String> │  │ - dataType: String      │  ← 입력 데이터 타입
+│ - isTemplate: boolean      │  │ - outputDataType: String│  ← 출력 데이터 타입
+│ - templateId: String       │  │ - role: String          │  ← start|end|middle
+│ - nodes: List<NodeDef.>    │  │ - authWarning: boolean  │  ← 미인증 경고
 │ - edges: List<EdgeDef.>    │  └─────────────────────────┘
 │ - trigger: TriggerConfig   │
 │ - isActive: boolean        │
