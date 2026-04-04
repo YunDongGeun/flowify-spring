@@ -2,32 +2,38 @@ package org.github.flowify.workflow.service;
 
 import org.github.flowify.common.exception.BusinessException;
 import org.github.flowify.common.exception.ErrorCode;
+import org.github.flowify.workflow.dto.ValidationWarning;
 import org.github.flowify.workflow.entity.EdgeDefinition;
 import org.github.flowify.workflow.entity.NodeDefinition;
 import org.github.flowify.workflow.entity.Workflow;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Component
 public class WorkflowValidator {
 
-    public void validate(Workflow workflow) {
+    public List<ValidationWarning> validate(Workflow workflow) {
         List<NodeDefinition> nodes = workflow.getNodes();
         List<EdgeDefinition> edges = workflow.getEdges();
 
         if (nodes == null || nodes.isEmpty()) {
-            return;
+            return Collections.emptyList();
         }
 
         checkCyclicReference(nodes, edges);
         checkIsolatedNodes(nodes, edges);
         checkRequiredConfig(nodes);
+
+        return checkDataTypeCompatibility(nodes, edges);
     }
 
     private void checkCyclicReference(List<NodeDefinition> nodes, List<EdgeDefinition> edges) {
@@ -106,5 +112,47 @@ public class WorkflowValidator {
                         "노드 '" + node.getId() + "'의 category 또는 type이 누락되었습니다.");
             }
         }
+    }
+
+    private List<ValidationWarning> checkDataTypeCompatibility(List<NodeDefinition> nodes,
+                                                                List<EdgeDefinition> edges) {
+        if (edges == null || edges.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<String, NodeDefinition> nodeMap = nodes.stream()
+                .collect(Collectors.toMap(NodeDefinition::getId, Function.identity()));
+
+        List<ValidationWarning> warnings = new ArrayList<>();
+
+        for (EdgeDefinition edge : edges) {
+            NodeDefinition source = nodeMap.get(edge.getSource());
+            NodeDefinition target = nodeMap.get(edge.getTarget());
+
+            if (source == null || target == null) {
+                continue;
+            }
+
+            String sourceOutput = source.getOutputDataType();
+            String targetInput = target.getDataType();
+
+            if (sourceOutput == null || sourceOutput.isBlank()
+                    || targetInput == null || targetInput.isBlank()) {
+                continue;
+            }
+
+            if (!sourceOutput.equals(targetInput)) {
+                warnings.add(ValidationWarning.builder()
+                        .nodeId(target.getId())
+                        .message("노드 '" + source.getId() + "'의 출력 타입(" + sourceOutput
+                                + ")이 노드 '" + target.getId() + "'의 입력 타입(" + targetInput
+                                + ")과 호환되지 않습니다.")
+                        .sourceType(sourceOutput)
+                        .targetType(targetInput)
+                        .build());
+            }
+        }
+
+        return warnings;
     }
 }

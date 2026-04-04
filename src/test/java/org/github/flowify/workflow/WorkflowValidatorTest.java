@@ -1,0 +1,228 @@
+package org.github.flowify.workflow;
+
+import org.github.flowify.common.exception.BusinessException;
+import org.github.flowify.workflow.dto.ValidationWarning;
+import org.github.flowify.workflow.entity.EdgeDefinition;
+import org.github.flowify.workflow.entity.NodeDefinition;
+import org.github.flowify.workflow.entity.Workflow;
+import org.github.flowify.workflow.service.WorkflowValidator;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class WorkflowValidatorTest {
+
+    private WorkflowValidator validator;
+
+    @BeforeEach
+    void setUp() {
+        validator = new WorkflowValidator();
+    }
+
+    @Test
+    @DisplayName("정상 워크플로우 검증 통과")
+    void validate_validWorkflow() {
+        Workflow workflow = buildLinearWorkflow();
+
+        List<ValidationWarning> warnings = validator.validate(workflow);
+
+        assertThat(warnings).isEmpty();
+    }
+
+    @Test
+    @DisplayName("빈 노드 리스트 검증 통과")
+    void validate_emptyNodes() {
+        Workflow workflow = Workflow.builder()
+                .nodes(new ArrayList<>())
+                .edges(new ArrayList<>())
+                .build();
+
+        List<ValidationWarning> warnings = validator.validate(workflow);
+
+        assertThat(warnings).isEmpty();
+    }
+
+    @Test
+    @DisplayName("순환 참조 검출")
+    void validate_cyclicReference() {
+        NodeDefinition node1 = NodeDefinition.builder().id("n1").category("ai").type("AI").build();
+        NodeDefinition node2 = NodeDefinition.builder().id("n2").category("ai").type("AI").build();
+        EdgeDefinition edge1 = EdgeDefinition.builder().source("n1").target("n2").build();
+        EdgeDefinition edge2 = EdgeDefinition.builder().source("n2").target("n1").build();
+
+        Workflow workflow = Workflow.builder()
+                .nodes(List.of(node1, node2))
+                .edges(List.of(edge1, edge2))
+                .build();
+
+        assertThatThrownBy(() -> validator.validate(workflow))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("순환 참조");
+    }
+
+    @Test
+    @DisplayName("고립 노드 검출")
+    void validate_isolatedNode() {
+        NodeDefinition node1 = NodeDefinition.builder().id("n1").category("ai").type("AI").build();
+        NodeDefinition node2 = NodeDefinition.builder().id("n2").category("ai").type("AI").build();
+        NodeDefinition isolated = NodeDefinition.builder().id("n3").category("ai").type("AI").build();
+        EdgeDefinition edge = EdgeDefinition.builder().source("n1").target("n2").build();
+
+        Workflow workflow = Workflow.builder()
+                .nodes(List.of(node1, node2, isolated))
+                .edges(List.of(edge))
+                .build();
+
+        assertThatThrownBy(() -> validator.validate(workflow))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("n3");
+    }
+
+    @Test
+    @DisplayName("필수 설정값(category) 누락 검출")
+    void validate_missingCategory() {
+        NodeDefinition node = NodeDefinition.builder().id("n1").type("AI").build();
+
+        Workflow workflow = Workflow.builder()
+                .nodes(List.of(node))
+                .edges(new ArrayList<>())
+                .build();
+
+        assertThatThrownBy(() -> validator.validate(workflow))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("category");
+    }
+
+    @Test
+    @DisplayName("필수 설정값(type) 누락 검출")
+    void validate_missingType() {
+        NodeDefinition node = NodeDefinition.builder().id("n1").category("ai").build();
+
+        Workflow workflow = Workflow.builder()
+                .nodes(List.of(node))
+                .edges(new ArrayList<>())
+                .build();
+
+        assertThatThrownBy(() -> validator.validate(workflow))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("type");
+    }
+
+    @Test
+    @DisplayName("데이터 타입 비호환 시 경고 생성")
+    void validate_dataTypeIncompatibility_warning() {
+        NodeDefinition node1 = NodeDefinition.builder()
+                .id("n1").category("storage").type("google_drive")
+                .dataType("FILE_LIST").outputDataType("TEXT")
+                .build();
+        NodeDefinition node2 = NodeDefinition.builder()
+                .id("n2").category("spreadsheet").type("google_sheets")
+                .dataType("SPREADSHEET_DATA").outputDataType("SPREADSHEET_DATA")
+                .build();
+        EdgeDefinition edge = EdgeDefinition.builder().source("n1").target("n2").build();
+
+        Workflow workflow = Workflow.builder()
+                .nodes(List.of(node1, node2))
+                .edges(List.of(edge))
+                .build();
+
+        List<ValidationWarning> warnings = validator.validate(workflow);
+
+        assertThat(warnings).hasSize(1);
+        assertThat(warnings.get(0).getNodeId()).isEqualTo("n2");
+        assertThat(warnings.get(0).getSourceType()).isEqualTo("TEXT");
+        assertThat(warnings.get(0).getTargetType()).isEqualTo("SPREADSHEET_DATA");
+    }
+
+    @Test
+    @DisplayName("데이터 타입 호환 시 경고 없음")
+    void validate_dataTypeCompatible_noWarning() {
+        NodeDefinition node1 = NodeDefinition.builder()
+                .id("n1").category("ai").type("AI")
+                .dataType("SINGLE_FILE").outputDataType("TEXT")
+                .build();
+        NodeDefinition node2 = NodeDefinition.builder()
+                .id("n2").category("communication").type("slack")
+                .dataType("TEXT").outputDataType("TEXT")
+                .build();
+        EdgeDefinition edge = EdgeDefinition.builder().source("n1").target("n2").build();
+
+        Workflow workflow = Workflow.builder()
+                .nodes(List.of(node1, node2))
+                .edges(List.of(edge))
+                .build();
+
+        List<ValidationWarning> warnings = validator.validate(workflow);
+
+        assertThat(warnings).isEmpty();
+    }
+
+    @Test
+    @DisplayName("dataType이 null인 노드는 경고 생략")
+    void validate_nullDataType_noWarning() {
+        NodeDefinition node1 = NodeDefinition.builder()
+                .id("n1").category("ai").type("AI")
+                .outputDataType("TEXT")
+                .build();
+        NodeDefinition node2 = NodeDefinition.builder()
+                .id("n2").category("ai").type("AI")
+                .build(); // dataType null
+
+        EdgeDefinition edge = EdgeDefinition.builder().source("n1").target("n2").build();
+
+        Workflow workflow = Workflow.builder()
+                .nodes(List.of(node1, node2))
+                .edges(List.of(edge))
+                .build();
+
+        List<ValidationWarning> warnings = validator.validate(workflow);
+
+        assertThat(warnings).isEmpty();
+    }
+
+    @Test
+    @DisplayName("여러 비호환 엣지에서 복수 경고 생성")
+    void validate_multipleIncompatibilities() {
+        NodeDefinition n1 = NodeDefinition.builder()
+                .id("n1").category("ai").type("AI").outputDataType("TEXT").build();
+        NodeDefinition n2 = NodeDefinition.builder()
+                .id("n2").category("ai").type("AI").dataType("FILE_LIST").outputDataType("EMAIL_LIST").build();
+        NodeDefinition n3 = NodeDefinition.builder()
+                .id("n3").category("ai").type("AI").dataType("SPREADSHEET_DATA").build();
+
+        EdgeDefinition e1 = EdgeDefinition.builder().source("n1").target("n2").build();
+        EdgeDefinition e2 = EdgeDefinition.builder().source("n2").target("n3").build();
+
+        Workflow workflow = Workflow.builder()
+                .nodes(List.of(n1, n2, n3))
+                .edges(List.of(e1, e2))
+                .build();
+
+        List<ValidationWarning> warnings = validator.validate(workflow);
+
+        assertThat(warnings).hasSize(2);
+    }
+
+    private Workflow buildLinearWorkflow() {
+        NodeDefinition node1 = NodeDefinition.builder()
+                .id("n1").category("storage").type("google_drive")
+                .dataType("FILE_LIST").outputDataType("TEXT")
+                .build();
+        NodeDefinition node2 = NodeDefinition.builder()
+                .id("n2").category("communication").type("slack")
+                .dataType("TEXT").outputDataType("TEXT")
+                .build();
+        EdgeDefinition edge = EdgeDefinition.builder().source("n1").target("n2").build();
+
+        return Workflow.builder()
+                .nodes(List.of(node1, node2))
+                .edges(List.of(edge))
+                .build();
+    }
+}

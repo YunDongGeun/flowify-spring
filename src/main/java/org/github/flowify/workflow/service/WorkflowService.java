@@ -6,6 +6,7 @@ import org.github.flowify.common.exception.BusinessException;
 import org.github.flowify.common.exception.ErrorCode;
 import org.github.flowify.workflow.dto.NodeAddRequest;
 import org.github.flowify.workflow.dto.NodeUpdateRequest;
+import org.github.flowify.workflow.dto.ValidationWarning;
 import org.github.flowify.workflow.dto.WorkflowCreateRequest;
 import org.github.flowify.workflow.dto.WorkflowResponse;
 import org.github.flowify.workflow.dto.WorkflowUpdateRequest;
@@ -48,9 +49,9 @@ public class WorkflowService {
                 .trigger(request.getTrigger())
                 .build();
 
-        workflowValidator.validate(workflow);
+        List<ValidationWarning> warnings = workflowValidator.validate(workflow);
         Workflow saved = workflowRepository.save(workflow);
-        return WorkflowResponse.from(saved);
+        return WorkflowResponse.from(saved, warnings);
     }
 
     public PageResponse<WorkflowResponse> getWorkflowsByUserId(String userId, int page, int size) {
@@ -93,9 +94,9 @@ public class WorkflowService {
             workflow.setActive(request.getIsActive());
         }
 
-        workflowValidator.validate(workflow);
+        List<ValidationWarning> warnings = workflowValidator.validate(workflow);
         Workflow saved = workflowRepository.save(workflow);
-        return WorkflowResponse.from(saved);
+        return WorkflowResponse.from(saved, warnings);
     }
 
     public void deleteWorkflow(String userId, String workflowId) {
@@ -182,8 +183,9 @@ public class WorkflowService {
             workflow.getEdges().add(edge);
         }
 
+        List<ValidationWarning> warnings = workflowValidator.validate(workflow);
         Workflow saved = workflowRepository.save(workflow);
-        return WorkflowResponse.from(saved);
+        return WorkflowResponse.from(saved, warnings);
     }
 
     /**
@@ -210,8 +212,9 @@ public class WorkflowService {
                 .build();
 
         workflow.getNodes().set(index, updated);
+        List<ValidationWarning> warnings = workflowValidator.validate(workflow);
         Workflow saved = workflowRepository.save(workflow);
-        return WorkflowResponse.from(saved);
+        return WorkflowResponse.from(saved, warnings);
     }
 
     /**
@@ -233,8 +236,9 @@ public class WorkflowService {
         workflow.getEdges().removeIf(e ->
                 toDelete.contains(e.getSource()) || toDelete.contains(e.getTarget()));
 
+        List<ValidationWarning> warnings = workflowValidator.validate(workflow);
         Workflow saved = workflowRepository.save(workflow);
-        return WorkflowResponse.from(saved);
+        return WorkflowResponse.from(saved, warnings);
     }
 
     private void collectDownstreamNodes(Workflow workflow, String startNodeId, Set<String> collected) {

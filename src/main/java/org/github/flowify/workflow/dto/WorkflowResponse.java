@@ -8,6 +8,8 @@ import org.github.flowify.workflow.entity.NodeDefinition;
 import org.github.flowify.workflow.entity.TriggerConfig;
 import org.github.flowify.workflow.entity.Workflow;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -27,6 +29,9 @@ public class WorkflowResponse {
     private final Instant createdAt;
     private final Instant updatedAt;
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private final List<ValidationWarning> warnings;
+
     public static WorkflowResponse from(Workflow workflow) {
         return WorkflowResponse.builder()
                 .id(workflow.getId())
@@ -39,6 +44,22 @@ public class WorkflowResponse {
                 .isActive(workflow.isActive())
                 .createdAt(workflow.getCreatedAt())
                 .updatedAt(workflow.getUpdatedAt())
+                .build();
+    }
+
+    public static WorkflowResponse from(Workflow workflow, List<ValidationWarning> warnings) {
+        return WorkflowResponse.builder()
+                .id(workflow.getId())
+                .name(workflow.getName())
+                .description(workflow.getDescription())
+                .userId(workflow.getUserId())
+                .nodes(workflow.getNodes())
+                .edges(workflow.getEdges())
+                .trigger(workflow.getTrigger())
+                .isActive(workflow.isActive())
+                .createdAt(workflow.getCreatedAt())
+                .updatedAt(workflow.getUpdatedAt())
+                .warnings(warnings.isEmpty() ? null : warnings)
                 .build();
     }
 }
