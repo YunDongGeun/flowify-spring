@@ -37,15 +37,14 @@ public class AuthService {
     @Value("${spring.security.oauth2.client.registration.google.redirect-uri}")
     private String redirectUri;
 
-    public String getGoogleLoginUrl(String baseUrl) {
-        String resolvedRedirectUri = redirectUri.replace("{baseUrl}", baseUrl);
-        return "https://accounts.google.com/o/oauth2/v2/auth"
-                + "?client_id=" + googleClientId
-                + "&redirect_uri=" + resolvedRedirectUri
-                + "&response_type=code"
-                + "&scope=openid%20email%20profile"
-                + "&access_type=offline"
-                + "&prompt=consent";
+    public String getGoogleLoginUrl() {
+    return "https://accounts.google.com/o/oauth2/v2/auth"
+            + "?client_id=" + googleClientId
+            + "&redirect_uri=" + redirectUri
+            + "&response_type=code"
+            + "&scope=openid%20email%20profile"
+            + "&access_type=offline"
+            + "&prompt=consent";
     }
 
     @SuppressWarnings("unchecked")
