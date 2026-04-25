@@ -65,8 +65,9 @@
 
 **핵심 원칙:**
 - Spring은 preflight만 수행하고, 실제 실행은 전부 FastAPI 담당
-- Spring은 `workflow_executions`에 **쓰지 않는다** — FastAPI가 MongoDB에 직접 기록
+- FastAPI가 `workflow_executions`에 직접 기록 (생성/상태 관리 주체)
 - Spring은 실행 결과 조회 시 MongoDB를 직접 읽는다 (`executionRepository.findById()`)
+- Spring은 완료 콜백 수신 시 `state`, `finishedAt` 두 필드만 `$set`으로 부분 업데이트 — 다른 필드는 건드리지 않는다
 
 ---
 

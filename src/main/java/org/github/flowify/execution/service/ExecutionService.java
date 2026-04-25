@@ -12,6 +12,10 @@ import org.github.flowify.workflow.entity.NodeDefinition;
 import org.github.flowify.workflow.entity.Workflow;
 import org.github.flowify.workflow.service.WorkflowService;
 import org.github.flowify.workflow.service.WorkflowValidator;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -26,6 +30,7 @@ public class ExecutionService {
 
     private final ExecutionRepository executionRepository;
     private final WorkflowService workflowService;
+    private final MongoTemplate mongoTemplate;
     private final FastApiClient fastApiClient;
     private final OAuthTokenService oauthTokenService;
     private final CatalogService catalogService;
@@ -123,11 +128,15 @@ public class ExecutionService {
     }
 
     public void completeExecution(String execId, String status, String error) {
-        WorkflowExecution execution = executionRepository.findById(execId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.EXECUTION_NOT_FOUND));
-        execution.setState(status);
-        execution.setFinishedAt(Instant.now());
-        executionRepository.save(execution);
+        Query query = Query.query(Criteria.where("_id").is(execId));
+        Update update = new Update()
+                .set("state", status)
+                .set("finishedAt", Instant.now());
+
+        long matched = mongoTemplate.updateFirst(query, update, WorkflowExecution.class).getMatchedCount();
+        if (matched == 0) {
+            throw new BusinessException(ErrorCode.EXECUTION_NOT_FOUND);
+        }
     }
 
     private Map<String, String> collectServiceTokens(String userId, List<NodeDefinition> nodes) {

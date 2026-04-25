@@ -562,10 +562,28 @@ GET {FASTAPI_URL}/api/runtime/capabilities
 
 ## 12. 콜백 방식
 
-현재 **폴링 방식만** 지원:
+두 가지 방식 모두 지원:
+
+**폴링:**
 - `GET /api/workflows/{id}/executions/{execId}` — MongoDB `workflow_executions` 컬렉션 조회
 
-웹훅 콜백(`POST /api/internal/executions/{execId}/complete`)은 미구현.
+**완료 콜백 (구현됨):**
+- `POST /api/internal/executions/{execId}/complete`
+- FastAPI가 실행 완료 후 Spring으로 상태를 역전송
+- `X-Internal-Token` 헤더 필수 (`${INTERNAL_API_SECRET}`)
+- Spring은 `state`, `finishedAt` 두 필드만 `$set`으로 부분 업데이트 (다른 필드 보존)
+
+```json
+// Request body
+{
+  "status": "completed",   // completed | failed
+  "output": { ... },       // optional
+  "durationMs": 1234,      // optional
+  "error": null            // 실패 시 에러 메시지
+}
+```
+
+> **주의 — Atlas 인덱스:** `workflow_executions` 컬렉션에 구버전 레거시 인덱스 `id_1 (unique)` 가 남아 있으면 콜백 저장 시 충돌이 발생합니다. Atlas에서 해당 인덱스를 수동으로 삭제해야 합니다.
 
 > **Trigger Phase 2 상세:** [TRIGGER_INTEGRATION_SPEC.md](TRIGGER_INTEGRATION_SPEC.md) 참조 — Schedule/Webhook trigger 구현 가이드, 팀별 TODO 체크리스트 포함.
 
@@ -579,3 +597,4 @@ GET {FASTAPI_URL}/api/runtime/capabilities
 | 2026-04-13 | label, edge id 필드 추가. 실행 중지 API 추가. 페이지네이션 제거. |
 | 2026-04-20 | WorkflowTranslator 도입 (runtime_source, runtime_sink). Source/Sink catalog API 추가. Schema preview API 추가. |
 | 2026-04-21 | **v2 통합:** runtime contract 반영 — source mode key 정정, canonical payload schema 추가, naming policy 추가, unsupported handling 추가, validation migration 추가, service_tokens decrypted 명시, transition policy 추가. REVISION_REQUEST 피드백 7건 모두 반영. |
+| 2026-04-26 | **Trigger Phase 2:** Schedule/Webhook trigger 구현. 완료 콜백(`POST /api/internal/executions/{execId}/complete`) 구현 — `$set` 부분 업데이트 방식. Atlas `id_1` 레거시 인덱스 삭제 필요 명시. |
