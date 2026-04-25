@@ -31,6 +31,8 @@ public class SecurityConfig {
                                 "/api/health",
                                 "/api/auth/**",
                                 "/api/oauth-tokens/*/callback",
+                                "/api/webhooks/**",
+                                "/api/internal/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"
                         ).permitAll()

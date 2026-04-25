@@ -12,11 +12,13 @@ import org.github.flowify.workflow.dto.WorkflowResponse;
 import org.github.flowify.workflow.dto.WorkflowUpdateRequest;
 import org.github.flowify.workflow.entity.EdgeDefinition;
 import org.github.flowify.workflow.entity.NodeDefinition;
+import org.github.flowify.workflow.entity.TriggerConfig;
 import org.github.flowify.workflow.entity.Workflow;
 import org.github.flowify.workflow.repository.WorkflowRepository;
 import org.github.flowify.workflow.service.choice.ChoiceMappingService;
 import org.github.flowify.workflow.service.choice.dto.ChoiceResponse;
 import org.github.flowify.workflow.service.choice.dto.NodeSelectionResult;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -38,6 +40,7 @@ public class WorkflowService {
     private final WorkflowRepository workflowRepository;
     private final WorkflowValidator workflowValidator;
     private final ChoiceMappingService choiceMappingService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public WorkflowResponse createWorkflow(String userId, WorkflowCreateRequest request) {
         Workflow workflow = Workflow.builder()
@@ -73,6 +76,9 @@ public class WorkflowService {
         Workflow workflow = findWorkflowOrThrow(workflowId);
         verifyAccess(workflow, userId);
 
+        boolean wasSchedule = workflow.getTrigger() != null
+                && "schedule".equals(workflow.getTrigger().getType());
+
         if (request.getName() != null) {
             workflow.setName(request.getName());
         }
@@ -94,13 +100,21 @@ public class WorkflowService {
 
         List<ValidationWarning> warnings = workflowValidator.validate(workflow);
         Workflow saved = workflowRepository.save(workflow);
+
+        publishScheduleEvent(saved, wasSchedule);
+
         return WorkflowResponse.from(saved, warnings);
     }
 
     public void deleteWorkflow(String userId, String workflowId) {
         Workflow workflow = findWorkflowOrThrow(workflowId);
         verifyOwnership(workflow, userId);
+        boolean wasSchedule = workflow.getTrigger() != null
+                && "schedule".equals(workflow.getTrigger().getType());
         workflowRepository.delete(workflow);
+        if (wasSchedule) {
+            eventPublisher.publishEvent(new WorkflowScheduleEvent(workflowId, false, null, null));
+        }
     }
 
     public void shareWorkflow(String userId, String workflowId, List<String> userIds) {
@@ -282,6 +296,20 @@ public class WorkflowService {
         if (!workflow.getUserId().equals(userId)
                 && !workflow.getSharedWith().contains(userId)) {
             throw new BusinessException(ErrorCode.WORKFLOW_ACCESS_DENIED);
+        }
+    }
+
+    private void publishScheduleEvent(Workflow saved, boolean wasSchedule) {
+        TriggerConfig trigger = saved.getTrigger();
+        boolean isSchedule = trigger != null && "schedule".equals(trigger.getType());
+
+        if (isSchedule) {
+            String cron = trigger.getConfig() != null ? (String) trigger.getConfig().get("cron") : null;
+            String timezone = trigger.getConfig() != null ? (String) trigger.getConfig().get("timezone") : null;
+            boolean shouldRegister = saved.isActive() && cron != null;
+            eventPublisher.publishEvent(new WorkflowScheduleEvent(saved.getId(), shouldRegister, cron, timezone));
+        } else if (wasSchedule) {
+            eventPublisher.publishEvent(new WorkflowScheduleEvent(saved.getId(), false, null, null));
         }
     }
 }

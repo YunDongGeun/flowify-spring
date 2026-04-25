@@ -567,6 +567,8 @@ GET {FASTAPI_URL}/api/runtime/capabilities
 
 웹훅 콜백(`POST /api/internal/executions/{execId}/complete`)은 미구현.
 
+> **Trigger Phase 2 상세:** [TRIGGER_INTEGRATION_SPEC.md](TRIGGER_INTEGRATION_SPEC.md) 참조 — Schedule/Webhook trigger 구현 가이드, 팀별 TODO 체크리스트 포함.
+
 ---
 
 ## 13. 변경 이력

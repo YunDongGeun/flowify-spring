@@ -4,8 +4,10 @@ import org.github.flowify.workflow.entity.Workflow;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.data.mongodb.repository.Query;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface WorkflowRepository extends MongoRepository<Workflow, String> {
 
@@ -16,4 +18,9 @@ public interface WorkflowRepository extends MongoRepository<Workflow, String> {
     List<Workflow> findByUserId(String userId);
 
     void deleteByUserId(String userId);
+
+    List<Workflow> findByTrigger_TypeAndIsActive(String type, boolean active);
+
+    @Query("{ 'trigger.config.webhookId': ?0 }")
+    Optional<Workflow> findByWebhookId(String webhookId);
 }

@@ -14,6 +14,7 @@ import org.github.flowify.workflow.service.WorkflowService;
 import org.github.flowify.workflow.service.WorkflowValidator;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -95,6 +96,38 @@ public class ExecutionService {
         }
 
         snapshotService.rollbackToSnapshot(userId, executionId, nodeId);
+    }
+
+    public String executeScheduled(String workflowId) {
+        Workflow workflow = workflowService.findWorkflowOrThrow(workflowId);
+        String userId = workflow.getUserId();
+        Map<String, String> tokens = collectServiceTokens(userId, workflow.getNodes());
+        Map<String, Object> runtimeModel = workflowTranslator.toRuntimeModel(workflow);
+        return fastApiClient.execute(workflowId, userId, runtimeModel, tokens);
+    }
+
+    @SuppressWarnings("unchecked")
+    public String executeFromWebhook(String workflowId, Map<String, Object> eventPayload) {
+        Workflow workflow = workflowService.findWorkflowOrThrow(workflowId);
+        String userId = workflow.getUserId();
+        Map<String, String> tokens = collectServiceTokens(userId, workflow.getNodes());
+        Map<String, Object> runtimeModel = workflowTranslator.toRuntimeModel(workflow);
+
+        Map<String, Object> triggerSection = (Map<String, Object>) runtimeModel.get("trigger");
+        if (triggerSection != null) {
+            triggerSection.computeIfAbsent("config", k -> new HashMap<>());
+            ((Map<String, Object>) triggerSection.get("config")).put("event_payload", eventPayload);
+        }
+
+        return fastApiClient.execute(workflowId, userId, runtimeModel, tokens);
+    }
+
+    public void completeExecution(String execId, String status, String error) {
+        WorkflowExecution execution = executionRepository.findById(execId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.EXECUTION_NOT_FOUND));
+        execution.setState(status);
+        execution.setFinishedAt(Instant.now());
+        executionRepository.save(execution);
     }
 
     private Map<String, String> collectServiceTokens(String userId, List<NodeDefinition> nodes) {

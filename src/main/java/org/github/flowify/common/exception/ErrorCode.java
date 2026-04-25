@@ -34,6 +34,10 @@ public enum ErrorCode {
     EXECUTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "워크플로우 실행에 실패했습니다."),
     EXECUTION_NOT_FOUND(HttpStatus.NOT_FOUND, "실행 이력을 찾을 수 없습니다."),
 
+    // Webhook
+    WEBHOOK_NOT_FOUND(HttpStatus.NOT_FOUND, "웹훅을 찾을 수 없습니다."),
+    WEBHOOK_SIGNATURE_INVALID(HttpStatus.UNAUTHORIZED, "웹훅 서명이 유효하지 않습니다."),
+
     // External API
     EXTERNAL_API_ERROR(HttpStatus.BAD_GATEWAY, "외부 서비스 API 호출에 실패했습니다."),
     LLM_API_ERROR(HttpStatus.BAD_GATEWAY, "LLM API 호출에 실패했습니다."),
